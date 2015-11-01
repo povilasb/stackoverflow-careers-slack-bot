@@ -1,0 +1,9 @@
+{
+	"name": "shaderbot",
+	"description": "Shader slack bot",
+	"dependencies": {
+		"underscore": "~1.8.3",
+		"mongodb": "~2.0.47",
+		"restify": "~4.0.3"
+	}
+}
