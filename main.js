@@ -38,13 +38,54 @@ function sendScrapedCompanies(response) {
 	});
 }
 
+/**
+ * Fetches scraped companies since yesterday.
+ */
+function sendNewScrapedCompanies(response) {
+	var url = 'mongodb://' + mongoDbAddr + ':27017/scraping_companies';
+	MongoClient.connect(url, function (err, db) {
+		if (err) {
+			var errMsg = 'Failed to connect to MongoDB';
+			response.send(formatSlackText(errMsg));
+			return;
+		}
+
+		var now = new Date();
+		var yesterday = new Date(now.getTime());
+		yesterday.setDate(now.getDate() - 1);
+
+		var cursor = db.collection('companies').find({
+			found_at: {$gt: yesterday}
+		});
+		cursor.toArray(function(err, companies) {
+			if (err) {
+				var errMsg = 'Failed to fetch data from MongodB';
+				response.send(formatSlackText(errMsg));
+				return;
+			}
+
+			var allCompanies = 'Companies I\'ve scraped since yesterday:\n';
+			_.each(companies, function(company) {
+				allCompanies += company.company + ' - ' +
+					company.link + '\n';
+			});
+
+			response.send(formatSlackText(allCompanies));
+
+			db.close();
+		});
+	});
+}
+
 function sendHelp(response) {
 	var text = 'Every command starts with `' + bot_name +
 		'` keyword. E.g.: \n' +
 		'> ' + bot_name + ' show companies\n' +
 		'All commands:\n' +
 		'\t`help` - shows these help messages.\n' +
-		'\t`show companies` - shows scraped companies.';
+		'\t`show companies` - shows scraped companies.\n' +
+		'\t`show new` - shows new scraped companies since yesterday ' +
+			'morning standup.';
 	var json = formatSlackText(text);
 	response.send(json);
 }
@@ -52,6 +93,8 @@ function sendHelp(response) {
 function onCmdShow(cmd, response) {
 	if (cmd.args[0] == 'companies') {
 		sendScrapedCompanies(response);
+	} else if (cmd.args[0] == 'new') {
+		sendNewScrapedCompanies(response);
 	}
 }
 
